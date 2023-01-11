@@ -1,0 +1,254 @@
+{
+  "configVersion": 2,
+  "packages": [
+    {
+      "name": "archive",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/archive-2.0.13",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "args",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/args-1.6.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.3"
+    },
+    {
+      "name": "async",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/async-2.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.2"
+    },
+    {
+      "name": "charcode",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/charcode-1.1.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "cli_repl",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/cli_repl-0.2.0+1",
+      "packageUri": "lib/",
+      "languageVersion": "1.20"
+    },
+    {
+      "name": "collection",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/collection-1.14.12",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "convert",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/convert-2.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "1.17"
+    },
+    {
+      "name": "crypto",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/crypto-2.1.5",
+      "packageUri": "lib/",
+      "languageVersion": "2.3"
+    },
+    {
+      "name": "glob",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/glob-1.2.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.1"
+    },
+    {
+      "name": "http",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/http-0.12.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.4"
+    },
+    {
+      "name": "http_parser",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/http_parser-3.1.4",
+      "packageUri": "lib/",
+      "languageVersion": "2.3"
+    },
+    {
+      "name": "image",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/image-2.1.19",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "js",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/js-0.6.1+1",
+      "packageUri": "lib/",
+      "languageVersion": "1.19"
+    },
+    {
+      "name": "markdown",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/markdown-2.1.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.1"
+    },
+    {
+      "name": "matcher",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/matcher-0.12.6",
+      "packageUri": "lib/",
+      "languageVersion": "2.2"
+    },
+    {
+      "name": "meta",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/meta-1.1.8",
+      "packageUri": "lib/",
+      "languageVersion": "1.12"
+    },
+    {
+      "name": "mime_type",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/mime_type-0.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "0.8"
+    },
+    {
+      "name": "mustache_template",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/mustache_template-1.0.0+1",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "node_interop",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/node_interop-1.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "node_io",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/node_io-1.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.2"
+    },
+    {
+      "name": "package_config",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/package_config-1.9.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.7"
+    },
+    {
+      "name": "package_resolver",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/package_resolver-1.0.10",
+      "packageUri": "lib/",
+      "languageVersion": "2.1"
+    },
+    {
+      "name": "path",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/path-1.7.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "pedantic",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/pedantic-1.9.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.1"
+    },
+    {
+      "name": "petitparser",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/petitparser-3.0.4",
+      "packageUri": "lib/",
+      "languageVersion": "2.7"
+    },
+    {
+      "name": "pool",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/pool-1.4.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "quiver",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/quiver-2.1.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "sass",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/sass-1.26.5",
+      "packageUri": "lib/",
+      "languageVersion": "2.6"
+    },
+    {
+      "name": "shelf",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/shelf-0.7.5",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "source_maps",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/source_maps-0.10.9",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "source_span",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/source_span-1.7.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.6"
+    },
+    {
+      "name": "stack_trace",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/stack_trace-1.9.3",
+      "packageUri": "lib/",
+      "languageVersion": "1.23"
+    },
+    {
+      "name": "stream_channel",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/stream_channel-2.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "stream_transform",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/stream_transform-1.2.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.6"
+    },
+    {
+      "name": "string_scanner",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/string_scanner-1.0.5",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "term_glyph",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/term_glyph-1.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "1.8"
+    },
+    {
+      "name": "tuple",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/tuple-1.0.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "typed_data",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/typed_data-1.1.6",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "watcher",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/watcher-0.9.7+15",
+      "packageUri": "lib/",
+      "languageVersion": "2.2"
+    },
+    {
+      "name": "xml",
+      "rootUri": "file:///home/valen/.pub-cache/hosted/pub.dartlang.org/xml-4.5.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.7"
+    },
+    {
+      "name": "tool",
+      "rootUri": "../",
+      "packageUri": "lib/",
+      "languageVersion": "2.11"
+    }
+  ],
+  "generated": "2021-12-12T02:50:04.759090Z",
+  "generator": "pub",
+  "generatorVersion": "2.15.0"
+}
