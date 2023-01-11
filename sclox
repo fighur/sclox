@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-java -jar "$(dirname $0)"/build/jlox.jar $@
+script_dir="$(dirname $0)"
+scala -classpath ${script_dir}/target/scala-3.2.1/classes/ lox $@

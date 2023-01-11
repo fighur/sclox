@@ -3,3 +3,4 @@ project
 .metals
 .vscode
 .bloop
+.bsp
