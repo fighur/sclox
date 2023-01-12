@@ -10,16 +10,29 @@ class AstPrinter:
 
 
   private def parenthesize(name: String, exprs: Expr*): String =
-    exprs.foldLeft(s"($name")((str, expr) => str + s" ${print(expr)})")
+    exprs.foldLeft(s"($name")((str, expr) => str + s" ${print(expr)}") + ")"
 
 
 @main def testPrinter: Unit =
+  import TokenType.*
+
+  // (5 - (3 - 1)) + -1
   val expression: Expr = Expr.Binary(
-    Expr.Unary(
-      Token(TokenType.MINUS, "-", null, 1),
-      Expr.Literal(123.asInstanceOf[Object])),
-    Token(TokenType.STAR, "*", null, 1),
     Expr.Grouping(
-      Expr.Literal(45.67.asInstanceOf[Object])))
+      Expr.Binary(
+        Expr.Literal(5.asInstanceOf[Object]),
+        Token(MINUS, "-", null, 1),
+        Expr.Grouping(
+          Expr.Binary(
+            Expr.Literal(3.asInstanceOf[Object]),
+            Token(MINUS, "-", null, 1),
+            Expr.Literal(1.asInstanceOf[Object])
+          )
+        )
+      )
+    ),
+    Token(PLUS, "+", null, 1),
+    Expr.Unary(Token(MINUS, "-", null, 1), Expr.Literal(1.asInstanceOf[Object]))
+  )
 
   println(AstPrinter().print(expression))

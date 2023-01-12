@@ -31,11 +31,23 @@ def runPrompt(): Unit =
 def run(source: String): Unit =
   val scanner = Scanner(source)
   val tokens = scanner.scanTokens()
-  println(tokens.mkString("\n"))
+  val parser = Parser(tokens)
+  val expression = parser.parse()
+
+  if (hadError) return
+
+  println(AstPrinter().print(expression))
 
 
 def error(line: Int, message: String): Unit =
   report(line, "", message)
+
+
+def error(token: Token, message: String): Unit =
+  if token.tokenType == TokenType.EOF then
+    report(token.line, " at end", message)
+  else
+    report(token.line, s" at '${token.lexeme}'", message)
 
 
 def report(line: Int, where: String, message: String): Unit =
