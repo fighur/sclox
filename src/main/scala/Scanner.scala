@@ -161,3 +161,5 @@ class Scanner(source: String):
   private def buildToken(tokenType: TokenType, literal: Object): Token =
     val text = source.substring(start, current)
     Token(tokenType, text, literal, line)
+
+end Scanner

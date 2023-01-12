@@ -3,11 +3,10 @@
 if [ $# -lt 1 ]
 then
   cat << EOF
-Usage ./run_test.sh <test_suite_name>
+Usage ./run_tests.sh <test_suite_name>
 
 <test_suite_name> is one of:
   - chap04_scanning
-  - chap05_representing
   - chap06_parsing
   - chap07_evaluating
   - chap08_statements
