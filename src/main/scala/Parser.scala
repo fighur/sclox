@@ -1,14 +1,14 @@
 import TokenType.*
+
+import annotation.tailrec
 import scala.util.{Try, Success, Failure}
 
-class Parser(var tokens: List[Token]):
-
-  private case class State(previous: Token, tokens: List[Token])
+class Parser(private var tokens: List[Token]):
+  // Add null at the start for previous()
+  tokens = null :: tokens
 
   private case class ParseError(token: Token, message: String) extends RuntimeException:
     error(token, message)
-
-  private var previous: Token = null
 
   def parse(): Expr =
     Try(expression()) match
@@ -21,52 +21,52 @@ class Parser(var tokens: List[Token]):
 
 
   private def equality(): Expr =
-    var expr = comparison()
+    @tailrec def equality(expr: Expr): Expr =
+      if matchAny(BANG_EQUAL, EQUAL_EQUAL) then
+        val operator = previous()
+        val right = comparison()
+        equality(Expr.Binary(expr, operator, right))
+      else expr
 
-    while matchTokenTypes(BANG_EQUAL, EQUAL_EQUAL) do
-      val operator = previous
-      val right = comparison()
-      expr = Expr.Binary(expr, operator, right)
-
-    expr
+    equality(comparison())
 
 
   private def comparison(): Expr =
-    var expr = term()
+    @tailrec def comparison(expr: Expr): Expr =
+      if matchAny(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) then
+        val operator = previous()
+        val right = term()
+        comparison(Expr.Binary(expr, operator, right))
+      else expr
 
-    while matchTokenTypes(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) do
-      val operator = previous
-      val right = term()
-      expr = Expr.Binary(expr, operator, right)
-
-    expr
+    comparison(term())
 
 
   private def term(): Expr =
-    var expr = factor()
+    @tailrec def term(expr: Expr): Expr =
+      if matchAny(MINUS, PLUS) then
+        val operator = previous()
+        val right = factor()
+        term(Expr.Binary(expr, operator, right))
+      else expr
 
-    while matchTokenTypes(MINUS, PLUS) do
-      val operator = previous
-      val right = factor()
-      expr = Expr.Binary(expr, operator, right)
-
-    expr
+    term(factor())
 
 
-  private def factor():Expr =
-    var expr = unary()
+  private def factor(): Expr =
+    @tailrec def factor(expr: Expr): Expr =
+      if matchAny(SLASH, STAR) then
+        val operator = previous()
+        val right = unary()
+        factor(Expr.Binary(expr, operator, right))
+      else expr
 
-    while matchTokenTypes(SLASH, STAR) do
-      val operator = previous
-      val right = unary()
-      expr = Expr.Binary(expr, operator, right)
-
-    expr
+    factor(unary())
 
 
   private def unary():Expr =
-    if matchTokenTypes(BANG, MINUS) then
-      val operator = previous
+    if matchAny(BANG, MINUS) then
+      val operator = previous()
       val right = unary()
       Expr.Unary(operator, right)
     else
@@ -74,23 +74,24 @@ class Parser(var tokens: List[Token]):
 
 
   private def primary(): Expr =
-    if matchTokenTypes(FALSE) then Expr.Literal(false.asInstanceOf[Object])
-    else if matchTokenTypes(TRUE) then Expr.Literal(true.asInstanceOf[Object])
-    else if matchTokenTypes(NIL) then Expr.Literal(null)
-    else if matchTokenTypes(NUMBER, STRING) then Expr.Literal(previous.literal)
-    else if matchTokenTypes(LEFT_PAREN) then
+    if matchAny(FALSE) then Expr.Literal(false.asInstanceOf[Object])
+    else if matchAny(TRUE) then Expr.Literal(true.asInstanceOf[Object])
+    else if matchAny(NIL) then Expr.Literal(null)
+    else if matchAny(NUMBER, STRING) then Expr.Literal(previous().literal)
+    else if matchAny(LEFT_PAREN) then
       val expr = expression()
       consume(RIGHT_PAREN, "Expect ')' after expression.")
       Expr.Grouping(expr)
     else throw ParseError(peek(), "Expect expression.")
 
 
-  private def matchTokenTypes(tokenTypes: TokenType*): Boolean =
-    for tokenType <- tokenTypes do
-      if check(tokenType) then
-        advance()
-        return true
-    false
+  @tailrec
+  private def matchAny(tokenTypes: TokenType*): Boolean =
+    if tokenTypes.isEmpty then false
+    else if check(tokenTypes.head) then
+      advance()
+      true
+    else matchAny(tokenTypes.tail*)
 
 
   private def check(tokenType: TokenType): Boolean =
@@ -103,14 +104,16 @@ class Parser(var tokens: List[Token]):
 
 
   private def advance(): Token =
-    if !isAtEnd() then
-      previous = tokens.head
-      tokens = tokens.tail
-    previous
+    if !isAtEnd() then tokens = tokens.tail
+    previous()
+
+
+  private def previous(): Token =
+    tokens.head
 
 
   private def peek(): Token =
-    tokens.head
+    tokens.tail.head
 
 
   private def consume(tokenType: TokenType, message: String): Token =
@@ -122,7 +125,7 @@ class Parser(var tokens: List[Token]):
     advance()
 
     while !isAtEnd() do
-      if previous.tokenType == SEMICOLON then return
+      if previous().tokenType == SEMICOLON then return
       else peek().tokenType match
         case CLASS | FUN | VAR | FOR | IF | WHILE | PRINT | RETURN => return
         case _ => advance()
