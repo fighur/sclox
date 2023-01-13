@@ -1,3 +1,4 @@
+
 import annotation.tailrec
 import scala.util.{Try, Success, Failure}
 
@@ -7,17 +8,77 @@ class Parser(private var tokens: List[Token]):
   // Add null at the start for previous()
   tokens = null :: tokens
 
-  private case class ParseError(token: Token, message: String) extends RuntimeException:
-    Lox.error(token, message)
+  private class ParseError extends RuntimeException
 
-  def parse(): Expr =
-    Try(expression()) match
-      case Success(expr) => expr
-      case Failure(error) => null
+  def parse(): List[Stmt] =
+    @tailrec def parse(stmts: List[Stmt]): List[Stmt] =
+      if isAtEnd() then stmts
+      else parse(declaration() :: stmts)
+
+    parse(Nil).reverse
+
+
+  private def declaration(): Stmt =
+    Try(if matchAny(VAR) then varDeclaration() else statement()) match
+      case Success(stmt) => stmt
+      case Failure(pe: ParseError) =>
+        synchronize()
+        null
+      case _ => ???
+
+
+  private def varDeclaration(): Stmt =
+    val name = consume(IDENTIFIER, "Expect variable name.")
+    val initializer =  if matchAny(EQUAL) then expression() else null
+
+    consume(SEMICOLON, "Expect ';' after variable declaration.")
+    Stmt.Var(name, initializer)
+
+
+  private def statement(): Stmt =
+    if matchAny(PRINT) then printStatement()
+    else if matchAny(LEFT_BRACE) then Stmt.Block(block())
+    else expressionStatement()
+
+
+  private def printStatement(): Stmt =
+    val value = expression()
+    consume(SEMICOLON, "Expect ';' after value.")
+    Stmt.Print(value)
+
+
+  private def block(): List[Stmt] =
+    @tailrec def block(stmts: List[Stmt]): List[Stmt] =
+      if check(RIGHT_BRACE) || isAtEnd() then
+        consume(RIGHT_BRACE, "Expect '}' after block.")
+        stmts.reverse
+      else
+        block(declaration() :: stmts)
+
+    block(Nil)
+
+
+  private def expressionStatement(): Stmt =
+    val expr = expression()
+    consume(SEMICOLON, "Expect ';' after expression.")
+    Stmt.Expression(expr)
 
 
   private def expression(): Expr =
-    equality()
+    assignment()
+
+
+  private def assignment(): Expr =
+    equality() match
+      case Expr.Variable(name) if matchAny(EQUAL) =>
+        val value = assignment()
+        Expr.Assign(name, value)
+      case expr if matchAny(EQUAL) =>
+        val equals = previous()
+        assignment()
+        error(equals, "Invalid assignment target.")
+        expr
+      case expr => expr
 
 
   private def equality(): Expr =
@@ -78,11 +139,12 @@ class Parser(private var tokens: List[Token]):
     else if matchAny(TRUE) then Expr.Literal(true)
     else if matchAny(NIL) then Expr.Literal(null)
     else if matchAny(NUMBER, STRING) then Expr.Literal(previous().literal)
+    else if matchAny(IDENTIFIER) then Expr.Variable(previous())
     else if matchAny(LEFT_PAREN) then
       val expr = expression()
       consume(RIGHT_PAREN, "Expect ')' after expression.")
       Expr.Grouping(expr)
-    else throw ParseError(peek(), "Expect expression.")
+    else throw error(peek(), "Expect expression.")
 
 
   @tailrec
@@ -118,16 +180,25 @@ class Parser(private var tokens: List[Token]):
 
   private def consume(tokenType: TokenType, message: String): Token =
     if check(tokenType) then advance()
-    else throw ParseError(peek(), message)
+    else throw error(peek(), message)
 
+
+  private def error(token: Token, message: String): ParseError =
+    Lox.error(token, message)
+    ParseError()
 
   private def synchronize(): Unit =
     advance()
 
-    while !isAtEnd() do
-      if previous().tokenType == SEMICOLON then return
-      else peek().tokenType match
-        case CLASS | FUN | VAR | FOR | IF | WHILE | PRINT | RETURN => return
-        case _ => advance()
+    @tailrec def synch(): Unit =
+      if !isAtEnd() then
+        if previous().tokenType == SEMICOLON then ()
+        else peek().tokenType match
+          case CLASS | FUN | VAR | FOR | IF | WHILE | PRINT | RETURN => ()
+          case _ =>
+            advance()
+            synch()
+
+    synch()
 
 end Parser

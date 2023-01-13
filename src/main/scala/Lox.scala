@@ -38,11 +38,11 @@ object Lox:
     val scanner = Scanner(source)
     val tokens = scanner.scanTokens()
     val parser = Parser(tokens)
-    val expression = parser.parse()
+    val statements = parser.parse()
 
-    if (hadError) return
+    if (hadError) ()
+    else interpreter.interpret(statements)
 
-    interpreter.interpret(expression)
 
   def error(line: Int, message: String): Unit =
     report(line, "", message)
@@ -56,10 +56,10 @@ object Lox:
 
 
   def report(line: Int, where: String, message: String): Unit =
-    Console.err.println(s"[line ${line}] Error ${where}: ${message}")
+    Console.err.println(s"[line ${line}] Error${where}: ${message}")
     hadError = true
 
 
   def runtimeError(error: RuntimeError): Unit =
-    Console.err.println(s"${error.message} \n[line ${error.token.line}]")
+    Console.err.println(s"${error.message}\n[line ${error.token.line}]")
     hadRuntimeError = true

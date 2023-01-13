@@ -3,4 +3,5 @@ enum Expr:
   case Grouping(expression: Expr)
   case Literal(value: Any)
   case Unary(operator: Token, right: Expr)
-
+  case Variable(name: Token)
+  case Assign(name: Token, value: Expr)

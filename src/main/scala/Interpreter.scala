@@ -1,22 +1,49 @@
+
 import scala.util.{Try, Success, Failure}
 
-import Expr.*
 import TokenType.*
 
 class Interpreter:
-  def interpret(expr: Expr): Unit =
-    Try(evaluate(expr)) match
-      case Success(value) =>
-        println(stringify(value))
-      case Failure(re: RuntimeError) =>
-        Lox.runtimeError(re)
-      case _ => ???
+  private var environment = Environment()
+
+  def interpret(statements: List[Stmt]): Unit =
+    statements.foldLeft(false)((failed, stmt) =>
+      if failed then failed
+      else Try(execute(stmt)) match
+        case Success(_) => false
+        case Failure(re: RuntimeError) =>
+          Lox.runtimeError(re)
+          true
+        case _ => true
+    )
+
+
+  private def execute(stmt: Stmt): Unit = stmt match
+    case Stmt.Expression(expr) => evaluate(expr)
+    case Stmt.Print(expr) =>
+      val value = evaluate(expr)
+      println(stringify(value))
+    case Stmt.Var(name, initializer) =>
+      val value = if initializer != null then evaluate(initializer) else null
+      environment.define(name.lexeme, value)
+    case Stmt.Block(statements) =>
+      executeBlock(statements, Environment(environment))
+
+
+  private def executeBlock(statements: List[Stmt], environment: Environment): Unit =
+    val previous = this.environment
+    try
+      this.environment = environment
+      for stmt <- statements do
+        execute(stmt)
+    finally
+      this.environment = previous
 
 
   private def evaluate(expr: Expr): Any = expr match
-    case Literal(value) => value
-    case Grouping(expr) => evaluate(expr)
-    case Unary(operator, right) =>
+    case Expr.Literal(value) => value
+    case Expr.Grouping(expr) => evaluate(expr)
+    case Expr.Unary(operator, right) =>
       val rightV = evaluate(right)
       operator.tokenType match
         case MINUS =>
@@ -25,7 +52,13 @@ class Interpreter:
         case BANG => !isTruthy(rightV)
         case _ => ???
 
-    case Binary(left, operator, right) =>
+    case Expr.Variable(name) => environment.get(name)
+    case Expr.Assign(name, value) =>
+      val evaluatedValue = evaluate(value)
+      environment.assign(name, evaluatedValue)
+      evaluatedValue
+
+    case Expr.Binary(left, operator, right) =>
       val leftV = evaluate(left)
       val rightV = evaluate(right)
       operator.tokenType match
