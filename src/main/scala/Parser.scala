@@ -1,14 +1,14 @@
-import TokenType.*
-
 import annotation.tailrec
 import scala.util.{Try, Success, Failure}
+
+import TokenType.*
 
 class Parser(private var tokens: List[Token]):
   // Add null at the start for previous()
   tokens = null :: tokens
 
   private case class ParseError(token: Token, message: String) extends RuntimeException:
-    error(token, message)
+    Lox.error(token, message)
 
   def parse(): Expr =
     Try(expression()) match
@@ -74,8 +74,8 @@ class Parser(private var tokens: List[Token]):
 
 
   private def primary(): Expr =
-    if matchAny(FALSE) then Expr.Literal(false.asInstanceOf[Object])
-    else if matchAny(TRUE) then Expr.Literal(true.asInstanceOf[Object])
+    if matchAny(FALSE) then Expr.Literal(false)
+    else if matchAny(TRUE) then Expr.Literal(true)
     else if matchAny(NIL) then Expr.Literal(null)
     else if matchAny(NUMBER, STRING) then Expr.Literal(previous().literal)
     else if matchAny(LEFT_PAREN) then
@@ -129,3 +129,5 @@ class Parser(private var tokens: List[Token]):
       else peek().tokenType match
         case CLASS | FUN | VAR | FOR | IF | WHILE | PRINT | RETURN => return
         case _ => advance()
+
+end Parser

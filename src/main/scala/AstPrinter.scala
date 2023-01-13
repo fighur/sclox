@@ -20,19 +20,19 @@ class AstPrinter:
   val expression: Expr = Expr.Binary(
     Expr.Grouping(
       Expr.Binary(
-        Expr.Literal(5.asInstanceOf[Object]),
+        Expr.Literal(5),
         Token(MINUS, "-", null, 1),
         Expr.Grouping(
           Expr.Binary(
-            Expr.Literal(3.asInstanceOf[Object]),
+            Expr.Literal(3),
             Token(MINUS, "-", null, 1),
-            Expr.Literal(1.asInstanceOf[Object])
+            Expr.Literal(1)
           )
         )
       )
     ),
     Token(PLUS, "+", null, 1),
-    Expr.Unary(Token(MINUS, "-", null, 1), Expr.Literal(1.asInstanceOf[Object]))
+    Expr.Unary(Token(MINUS, "-", null, 1), Expr.Literal(1))
   )
 
   println(AstPrinter().print(expression))

@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 script_dir="$(dirname $0)"
-scala -classpath ${script_dir}/target/scala-3.2.1/classes/ lox $@
+scala -classpath ${script_dir}/target/scala-3.2.1/classes/ sclox $@

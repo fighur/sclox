@@ -1,3 +1,3 @@
-case class Token(tokenType: TokenType, lexeme: String, literal: Object, line: Int):
+case class Token(tokenType: TokenType, lexeme: String, literal: Any, line: Int):
   override def toString(): String =
     s"$tokenType $lexeme $literal"

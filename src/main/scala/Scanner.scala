@@ -1,4 +1,5 @@
 import annotation.tailrec
+
 import TokenType.*
 
 class Scanner(source: String):
@@ -35,7 +36,7 @@ class Scanner(source: String):
       case Right(eof @ Token(EOF, _, _, _)) => (eof :: tokens).reverse
       case Right(token) => scanTokens(token :: tokens)
       case Left(errorMessage) =>
-        error(line, errorMessage)
+        Lox.error(line, errorMessage)
         scanTokens(tokens)
 
 
@@ -102,7 +103,7 @@ class Scanner(source: String):
       advance()
       while isDigit(peek()) do advance()
 
-    val num = source.substring(start, current).toDouble.asInstanceOf[Object]
+    val num = source.substring(start, current).toDouble
     Right(buildToken(NUMBER, num))
 
 
@@ -158,7 +159,7 @@ class Scanner(source: String):
     else Right(buildToken(tokenType, null))
 
 
-  private def buildToken(tokenType: TokenType, literal: Object): Token =
+  private def buildToken(tokenType: TokenType, literal: Any): Token =
     val text = source.substring(start, current)
     Token(tokenType, text, literal, line)
 
