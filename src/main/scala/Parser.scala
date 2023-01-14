@@ -3,6 +3,7 @@ import annotation.tailrec
 import scala.util.{Try, Success, Failure}
 
 import TokenType.*
+import scala.collection.immutable.LazyList.cons
 
 class Parser(private var tokens: List[Token]):
   // Add null at the start for previous()
@@ -19,12 +20,40 @@ class Parser(private var tokens: List[Token]):
 
 
   private def declaration(): Stmt =
-    Try(if matchAny(VAR) then varDeclaration() else statement()) match
+    lazy val matchedStmt =
+      if matchAny(FUN) then function("function")
+      else if matchAny(VAR) then varDeclaration()
+      else statement()
+
+    Try(matchedStmt) match
       case Success(stmt) => stmt
       case Failure(pe: ParseError) =>
         synchronize()
         null
       case _ => ???
+
+
+  private def function(kind: String): Stmt =
+    @tailrec def parseParams(params: List[Token], count: Int): List[Token] =
+      if matchAny(COMMA) then
+        if (count >= 255) then error(peek(), "Can't have more than 255 parameters.")
+        parseParams(consume(IDENTIFIER, "Expect parameter name") :: params, count + 1)
+      else params.reverse
+
+    val name = consume(IDENTIFIER, s"Expect $kind name.")
+    consume(LEFT_PAREN, s"Expect '(' after $kind name.")
+
+    val parameters =
+      if !check(RIGHT_PAREN) then
+        parseParams(consume(IDENTIFIER, "Expect parameter name") :: Nil, 1)
+      else Nil
+
+    consume(RIGHT_PAREN, "Expect ')' after parameters.")
+    consume(LEFT_BRACE, s"Expect '{' before $kind body.")
+
+    val body = block()
+
+    Stmt.Function(name, parameters, body)
 
 
   private def varDeclaration(): Stmt =
@@ -39,6 +68,7 @@ class Parser(private var tokens: List[Token]):
     if matchAny(FOR) then forStatement()
     else if matchAny(IF) then ifStatement()
     else if matchAny(PRINT) then printStatement()
+    else if matchAny(RETURN) then returnStatement()
     else if matchAny(WHILE) then whileStatement()
     else if matchAny(LEFT_BRACE) then Stmt.Block(block())
     else expressionStatement()
@@ -86,6 +116,14 @@ class Parser(private var tokens: List[Token]):
     val value = expression()
     consume(SEMICOLON, "Expect ';' after value.")
     Stmt.Print(value)
+
+
+  private def returnStatement(): Stmt =
+    val keyword = previous()
+    var value = if !check(SEMICOLON) then Some(expression()) else None
+
+    consume(SEMICOLON, "Expect ';' after return value.")
+    Stmt.Return(keyword, value)
 
 
   private def whileStatement(): Stmt =
@@ -202,7 +240,31 @@ class Parser(private var tokens: List[Token]):
       val right = unary()
       Expr.Unary(operator, right)
     else
-      primary()
+      call()
+
+
+  private def call(): Expr =
+    @tailrec def call(expr: Expr): Expr =
+      if matchAny(LEFT_PAREN) then
+        call(finishCall(expr))
+      else expr
+
+    call(primary())
+
+
+  private def finishCall(callee: Expr): Expr =
+    @tailrec def parseArgs(args: List[Expr], count: Int): List[Expr] =
+      if matchAny(COMMA) then
+        if (count >= 255) then error(peek(), "Can't have more than 255 arguments.")
+        parseArgs(expression() :: args, count + 1)
+      else args.reverse
+
+    val arguments =
+      if !check(RIGHT_PAREN) then
+        parseArgs(expression() :: Nil, 1)
+      else Nil
+    val paren = consume(RIGHT_PAREN, "Expect ')' after arguments.")
+    Expr.Call(callee, paren, arguments)
 
 
   private def primary(): Expr =

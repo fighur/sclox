@@ -4,7 +4,16 @@ import scala.util.{Try, Success, Failure}
 import TokenType.*
 
 class Interpreter:
-  private var environment = Environment()
+  private class ClockFun extends LoxCallable:
+    override def arity(): Int = 0
+    override def call(interpreter: Interpreter, arguments: List[Any]): Any =
+      System.currentTimeMillis() / 1000.0
+    override def toString(): String = "<native fn>"
+
+  val globals = Environment()
+  globals.define("clock", ClockFun())
+
+  private var environment = globals
 
   def interpret(statements: List[Stmt]): Unit =
     statements.foldLeft(false)((failed, stmt) =>
@@ -20,27 +29,41 @@ class Interpreter:
 
   private def execute(stmt: Stmt): Unit = stmt match
     case Stmt.Expression(expr) => evaluate(expr)
+    case stmt @ Stmt.Function(name, _, _) =>
+      val function = LoxFunction(stmt, environment)
+      environment.define(name.lexeme, function)
+
     case Stmt.If(condition, thenBranch, elseBranch) =>
       if isTruthy(evaluate(condition)) then execute(thenBranch)
       else elseBranch match
         case Some(stmt) => execute(stmt)
         case None => ()
+
     case Stmt.Print(expr) =>
       val value = evaluate(expr)
       println(stringify(value))
+
+    case Stmt.Return(keyword, value) => value match
+      case Some(value) => throw Return(evaluate(value))
+      case None => throw Return(null)
+
     case Stmt.While(condition, body) =>
       while isTruthy(evaluate(condition)) do
         execute(body)
+
     case Stmt.Var(name, initializer) =>
       val value = initializer match
         case Some(expr) => evaluate(expr)
         case None => null
       environment.define(name.lexeme, value)
+
     case Stmt.Block(statements) =>
       executeBlock(statements, Environment(environment))
 
+  end execute
 
-  private def executeBlock(statements: List[Stmt], environment: Environment): Unit =
+
+  def executeBlock(statements: List[Stmt], environment: Environment): Unit =
     val previous = this.environment
     try
       this.environment = environment
@@ -110,6 +133,18 @@ class Interpreter:
           checkNumberOperands(operator, leftV, rightV)
           leftV.asInstanceOf[Double] * rightV.asInstanceOf[Double]
         case _ => ???
+
+    case Expr.Call(callee, paren, arguments) =>
+      val calleeV = evaluate(callee)
+      val argumentsV = arguments.map(evaluate(_))
+      if !calleeV.isInstanceOf[LoxCallable] then
+        throw RuntimeError(paren, "Can only call functions and classes.")
+      else
+        val function = calleeV.asInstanceOf[LoxCallable]
+        if (arguments.length != function.arity()) then
+          throw RuntimeError(paren, s"Expected ${function.arity()} arguments but got ${arguments.length}.")
+        else
+          function.call(this, argumentsV)
 
   end evaluate
 
