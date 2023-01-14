@@ -29,22 +29,72 @@ class Parser(private var tokens: List[Token]):
 
   private def varDeclaration(): Stmt =
     val name = consume(IDENTIFIER, "Expect variable name.")
-    val initializer =  if matchAny(EQUAL) then expression() else null
+    val initializer =  if matchAny(EQUAL) then Some(expression()) else None
 
     consume(SEMICOLON, "Expect ';' after variable declaration.")
     Stmt.Var(name, initializer)
 
 
   private def statement(): Stmt =
-    if matchAny(PRINT) then printStatement()
+    if matchAny(FOR) then forStatement()
+    else if matchAny(IF) then ifStatement()
+    else if matchAny(PRINT) then printStatement()
+    else if matchAny(WHILE) then whileStatement()
     else if matchAny(LEFT_BRACE) then Stmt.Block(block())
     else expressionStatement()
+
+
+  private def forStatement(): Stmt =
+    consume(LEFT_PAREN, "Expect '(' after 'for'.")
+    val initializer =
+      if matchAny(SEMICOLON) then null
+      else if matchAny(VAR) then varDeclaration()
+      else expressionStatement()
+
+    var condition = if !check(SEMICOLON) then expression() else Expr.Literal(true)
+    consume(SEMICOLON, "Expect ';' after loop condition.")
+
+    val increment = if !check(RIGHT_PAREN) then expression() else null
+    consume(RIGHT_PAREN, "Expect ')' after for clauses.")
+
+    val body =
+      if increment != null then
+        Stmt.Block(List(statement(), Stmt.Expression(increment)))
+      else statement()
+
+    val loop = Stmt.While(condition, body)
+
+    val forLoop =
+      if initializer != null then
+        Stmt.Block(List(initializer, loop))
+      else loop
+
+    forLoop
+
+
+  private def ifStatement(): Stmt =
+    consume(LEFT_PAREN, "Expect '(' after 'if'.")
+    val condition = expression()
+    consume(RIGHT_PAREN, "Expect ')' after if condition.")
+    val thenBranch = statement()
+    val elseBranch = if matchAny(ELSE) then Some(statement()) else None
+
+    Stmt.If(condition, thenBranch, elseBranch)
 
 
   private def printStatement(): Stmt =
     val value = expression()
     consume(SEMICOLON, "Expect ';' after value.")
     Stmt.Print(value)
+
+
+  private def whileStatement(): Stmt =
+    consume(LEFT_PAREN, "Expect '(' after 'while'.")
+    val condition = expression()
+    consume(RIGHT_PAREN, "Expect ')' after condition.")
+    val body = statement()
+
+    Stmt.While(condition, body)
 
 
   private def block(): List[Stmt] =
@@ -69,7 +119,7 @@ class Parser(private var tokens: List[Token]):
 
 
   private def assignment(): Expr =
-    equality() match
+    or() match
       case Expr.Variable(name) if matchAny(EQUAL) =>
         val value = assignment()
         Expr.Assign(name, value)
@@ -79,6 +129,27 @@ class Parser(private var tokens: List[Token]):
         error(equals, "Invalid assignment target.")
         expr
       case expr => expr
+
+
+  private def or(): Expr =
+    @tailrec def or(expr: Expr): Expr =
+      if matchAny(OR) then
+        val operator = previous()
+        val right = and()
+        or(Expr.Logical(expr, operator, right))
+      else expr
+
+    or(and())
+
+  private def and(): Expr =
+    @tailrec def and(expr: Expr): Expr =
+      if matchAny(AND) then
+        val operator = previous()
+        val right = equality()
+        and(Expr.Logical(expr, operator, right))
+      else expr
+
+    and(equality())
 
 
   private def equality(): Expr =

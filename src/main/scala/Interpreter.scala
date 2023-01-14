@@ -20,11 +20,21 @@ class Interpreter:
 
   private def execute(stmt: Stmt): Unit = stmt match
     case Stmt.Expression(expr) => evaluate(expr)
+    case Stmt.If(condition, thenBranch, elseBranch) =>
+      if isTruthy(evaluate(condition)) then execute(thenBranch)
+      else elseBranch match
+        case Some(stmt) => execute(stmt)
+        case None => ()
     case Stmt.Print(expr) =>
       val value = evaluate(expr)
       println(stringify(value))
+    case Stmt.While(condition, body) =>
+      while isTruthy(evaluate(condition)) do
+        execute(body)
     case Stmt.Var(name, initializer) =>
-      val value = if initializer != null then evaluate(initializer) else null
+      val value = initializer match
+        case Some(expr) => evaluate(expr)
+        case None => null
       environment.define(name.lexeme, value)
     case Stmt.Block(statements) =>
       executeBlock(statements, Environment(environment))
@@ -51,6 +61,13 @@ class Interpreter:
           -rightV.asInstanceOf[Double]
         case BANG => !isTruthy(rightV)
         case _ => ???
+
+    case Expr.Logical(left, operator, right) =>
+      val leftV = evaluate(left)
+      operator.tokenType match
+        case OR if isTruthy(leftV) => leftV
+        case AND if !isTruthy(leftV) => leftV
+        case _ => evaluate(right)
 
     case Expr.Variable(name) => environment.get(name)
     case Expr.Assign(name, value) =>
