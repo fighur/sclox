@@ -3,7 +3,6 @@ import annotation.tailrec
 import scala.util.{Try, Success, Failure}
 
 import TokenType.*
-import scala.collection.immutable.LazyList.cons
 
 class Parser(private var tokens: List[Token]):
   // Add null at the start for previous()

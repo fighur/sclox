@@ -34,7 +34,7 @@ class Scanner(source: String):
   @tailrec
   private def scanTokens(tokens: List[Token]): List[Token] =
     scanToken() match
-      case Right(eof @ Token(EOF, _, _, _)) => (eof :: tokens).reverse
+      case Right(eof) if eof.tokenType == EOF => (eof :: tokens).reverse
       case Right(token) => scanTokens(token :: tokens)
       case Left(errorMessage) =>
         Lox.error(line, errorMessage)

@@ -40,8 +40,12 @@ object Lox:
     val parser = Parser(tokens)
     val statements = parser.parse()
 
-    if (hadError) ()
-    else interpreter.interpret(statements)
+    if hadError then ()
+    else
+      val resolver = Resolver(interpreter)
+      resolver.resolve(statements)
+      if hadError then ()
+      else  interpreter.interpret(statements)
 
 
   def error(line: Int, message: String): Unit =

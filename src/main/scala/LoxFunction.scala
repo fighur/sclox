@@ -9,7 +9,7 @@ class LoxFunction(declaration: Stmt.Function, closure: Environment) extends LoxC
     Try(interpreter.executeBlock(declaration.body, environment)) match
       case Failure(Return(value)) => value
       case Success(_) => null
-      case _ => ???
+      case Failure(error) => throw error
 
   override def arity(): Int = declaration.params.length
 

@@ -21,3 +21,17 @@ class Environment(enclosing: Environment = null):
       enclosing.assign(name, value)
     else
       throw RuntimeError(name, s"Undefined variable '${name.lexeme}'.")
+
+
+  def getAt(distance: Int, name: String): Any =
+    ancestor(distance).values(name)
+
+
+  def assignAt(distance: Int, name: Token, value: Any): Unit =
+    ancestor(distance).values += (name.lexeme -> value)
+
+
+  @annotation.tailrec
+  private def ancestor(distance: Int): Environment =
+    if distance == 0 then this
+    else enclosing.ancestor(distance - 1)

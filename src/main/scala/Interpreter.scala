@@ -10,21 +10,21 @@ class Interpreter:
       System.currentTimeMillis() / 1000.0
     override def toString(): String = "<native fn>"
 
-  val globals = Environment()
+  private val globals = Environment()
   globals.define("clock", ClockFun())
 
+  private var locals = Map.empty[Expr, Int]
   private var environment = globals
 
+  def resolve(expr: Expr, depth: Int): Unit =
+    locals += (expr -> depth)
+
+
   def interpret(statements: List[Stmt]): Unit =
-    statements.foldLeft(false)((failed, stmt) =>
-      if failed then failed
-      else Try(execute(stmt)) match
-        case Success(_) => false
-        case Failure(re: RuntimeError) =>
-          Lox.runtimeError(re)
-          true
-        case _ => true
-    )
+    try
+      for statement <- statements do execute(statement)
+    catch
+      case re: RuntimeError => Lox.runtimeError(re)
 
 
   private def execute(stmt: Stmt): Unit = stmt match
@@ -92,10 +92,12 @@ class Interpreter:
         case AND if !isTruthy(leftV) => leftV
         case _ => evaluate(right)
 
-    case Expr.Variable(name) => environment.get(name)
+    case Expr.Variable(name) => lookUpVariable(name, expr)
     case Expr.Assign(name, value) =>
       val evaluatedValue = evaluate(value)
-      environment.assign(name, evaluatedValue)
+      locals.get(expr) match
+        case Some(distance) => environment.assignAt(distance, name, evaluatedValue)
+        case None => globals.assign(name, evaluatedValue)
       evaluatedValue
 
     case Expr.Binary(left, operator, right) =>
@@ -147,6 +149,12 @@ class Interpreter:
           function.call(this, argumentsV)
 
   end evaluate
+
+
+  private def lookUpVariable(name: Token, expr: Expr): Any =
+    locals.get(expr) match
+      case Some(distance) => environment.getAt(distance, name.lexeme)
+      case None => globals.get(name)
 
 
   private def isTruthy(value: Any): Boolean =
