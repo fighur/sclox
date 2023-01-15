@@ -5,13 +5,10 @@ class Environment(enclosing: Environment = null):
     values += (name -> value)
 
 
-  def get(name: Token): Any =
-    if values.contains(name.lexeme) then
-      values(name.lexeme)
-    else if enclosing != null then
-      enclosing.get(name)
-    else
-      throw RuntimeError(name, s"Undefined variable '${name.lexeme}'.")
+  def get(name: Token): Any = values.get(name.lexeme) match
+    case Some(value) => value
+    case None if enclosing != null => enclosing.get(name)
+    case _ => throw RuntimeError(name, s"Undefined variable '${name.lexeme}'.")
 
 
   def assign(name: Token, value: Any): Unit =

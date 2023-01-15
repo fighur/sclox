@@ -21,6 +21,7 @@ class Parser(private var tokens: List[Token]):
   private def declaration(): Stmt =
     lazy val matchedStmt =
       if matchAny(FUN) then function("function")
+      else if matchAny(CLASS) then classDeclaration()
       else if matchAny(VAR) then varDeclaration()
       else statement()
 
@@ -32,7 +33,21 @@ class Parser(private var tokens: List[Token]):
       case _ => ???
 
 
-  private def function(kind: String): Stmt =
+  private def classDeclaration(): Stmt =
+    @tailrec def parseMethods(methods: List[Stmt.Function]): List[Stmt.Function] =
+      if check(RIGHT_BRACE) || isAtEnd() then methods.reverse
+      else parseMethods(function("method") :: methods)
+
+    val name = consume(IDENTIFIER, "Expect class name.")
+    consume(LEFT_BRACE, "Expect '{' before class body.")
+
+    val methods = parseMethods(Nil)
+    consume(RIGHT_BRACE, "Expect '}' after class body.")
+
+    Stmt.Class(name, methods)
+
+
+  private def function(kind: String): Stmt.Function =
     @tailrec def parseParams(params: List[Token], count: Int): List[Token] =
       if matchAny(COMMA) then
         if (count >= 255) then error(peek(), "Can't have more than 255 parameters.")
@@ -160,6 +175,9 @@ class Parser(private var tokens: List[Token]):
       case Expr.Variable(name) if matchAny(EQUAL) =>
         val value = assignment()
         Expr.Assign(name, value)
+      case Expr.Get(instance, name) if matchAny(EQUAL) =>
+        val value = assignment()
+        Expr.Set(instance, name, value)
       case expr if matchAny(EQUAL) =>
         val equals = previous()
         assignment()
@@ -246,6 +264,9 @@ class Parser(private var tokens: List[Token]):
     @tailrec def call(expr: Expr): Expr =
       if matchAny(LEFT_PAREN) then
         call(finishCall(expr))
+      else if matchAny(DOT) then
+        val name = consume(IDENTIFIER, "Expect property name after '.'.")
+        call(Expr.Get(expr, name))
       else expr
 
     call(primary())
@@ -271,6 +292,7 @@ class Parser(private var tokens: List[Token]):
     else if matchAny(TRUE) then Expr.Literal(true)
     else if matchAny(NIL) then Expr.Literal(null)
     else if matchAny(NUMBER, STRING) then Expr.Literal(previous().literal)
+    else if matchAny(THIS) then Expr.This(previous())
     else if matchAny(IDENTIFIER) then Expr.Variable(previous())
     else if matchAny(LEFT_PAREN) then
       val expr = expression()

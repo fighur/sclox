@@ -30,7 +30,7 @@ class Interpreter:
   private def execute(stmt: Stmt): Unit = stmt match
     case Stmt.Expression(expr) => evaluate(expr)
     case stmt @ Stmt.Function(name, _, _) =>
-      val function = LoxFunction(stmt, environment)
+      val function = LoxFunction(stmt, environment, false)
       environment.define(name.lexeme, function)
 
     case Stmt.If(condition, thenBranch, elseBranch) =>
@@ -60,6 +60,16 @@ class Interpreter:
     case Stmt.Block(statements) =>
       executeBlock(statements, Environment(environment))
 
+    case Stmt.Class(name, methods) =>
+      environment.define(name.lexeme, null)
+
+      val classMethods = methods.map(method =>
+        val methodName = method.name.lexeme
+        (methodName, LoxFunction(method, environment, methodName == "init"))).toMap
+      val klass = LoxClass(name.lexeme, classMethods)
+
+      environment.assign(name, klass)
+
   end execute
 
 
@@ -79,9 +89,9 @@ class Interpreter:
     case Expr.Unary(operator, right) =>
       val rightV = evaluate(right)
       operator.tokenType match
-        case MINUS =>
-          checkNumberOperand(operator, rightV)
-          -rightV.asInstanceOf[Double]
+        case MINUS => rightV match
+          case d: Double => -d
+          case _ => numberOperandError(operator)
         case BANG => !isTruthy(rightV)
         case _ => ???
 
@@ -106,47 +116,60 @@ class Interpreter:
       operator.tokenType match
         case BANG_EQUAL => !isEqual(leftV, rightV)
         case EQUAL_EQUAL => isEqual(leftV, rightV)
-        case GREATER =>
-          checkNumberOperands(operator, leftV, rightV)
-          leftV.asInstanceOf[Double] > rightV.asInstanceOf[Double]
-        case GREATER_EQUAL =>
-          checkNumberOperands(operator, leftV, rightV)
-          leftV.asInstanceOf[Double] >= rightV.asInstanceOf[Double]
-        case LESS =>
-          checkNumberOperands(operator, leftV, rightV)
-          leftV.asInstanceOf[Double] < rightV.asInstanceOf[Double]
-        case LESS_EQUAL =>
-          checkNumberOperands(operator, leftV, rightV)
-          leftV.asInstanceOf[Double] <= rightV.asInstanceOf[Double]
-        case MINUS =>
-          checkNumberOperands(operator, leftV, rightV)
-          leftV.asInstanceOf[Double] - rightV.asInstanceOf[Double]
-        case PLUS =>
-          if leftV.isInstanceOf[Double] && rightV.isInstanceOf[Double] then
-            leftV.asInstanceOf[Double] + rightV.asInstanceOf[Double]
-          else if leftV.isInstanceOf[String] && rightV.isInstanceOf[String] then
-            leftV.asInstanceOf[String] + rightV.asInstanceOf[String]
-          else
-            throw RuntimeError(operator, "Operands must be two numbers or two strings.")
-        case SLASH =>
-          checkNumberOperands(operator, leftV, rightV)
-          leftV.asInstanceOf[Double] / rightV.asInstanceOf[Double]
-        case STAR =>
-          checkNumberOperands(operator, leftV, rightV)
-          leftV.asInstanceOf[Double] * rightV.asInstanceOf[Double]
+        case GREATER => (leftV, rightV) match
+          case (ld: Double, rd: Double) => ld > rd
+          case _ => numberOperandsError(operator)
+        case GREATER_EQUAL => (leftV, rightV) match
+          case (ld: Double, rd: Double) => ld >= rd
+          case _ => numberOperandsError(operator)
+        case LESS => (leftV, rightV) match
+          case (ld: Double, rd: Double) => ld < rd
+          case _ => numberOperandsError(operator)
+        case LESS_EQUAL => (leftV, rightV) match
+          case (ld: Double, rd: Double) => ld <= rd
+          case _ => numberOperandsError(operator)
+        case MINUS => (leftV, rightV) match
+          case (ld: Double, rd: Double) => ld - rd
+          case _ => numberOperandsError(operator)
+        case PLUS => (leftV, rightV) match
+          case (ld: Double, rd: Double) => ld + rd
+          case (ls: String, rs: String) => ls + rs
+          case _ => throw RuntimeError(operator, "Operands must be two numbers or two strings.")
+        case SLASH => (leftV, rightV) match
+          case (ld: Double, rd: Double) => ld / rd
+          case _ => numberOperandsError(operator)
+        case STAR => (leftV, rightV) match
+          case (ld: Double, rd: Double) => ld * rd
+          case _ => numberOperandsError(operator)
         case _ => ???
 
     case Expr.Call(callee, paren, arguments) =>
       val calleeV = evaluate(callee)
       val argumentsV = arguments.map(evaluate(_))
-      if !calleeV.isInstanceOf[LoxCallable] then
-        throw RuntimeError(paren, "Can only call functions and classes.")
-      else
-        val function = calleeV.asInstanceOf[LoxCallable]
-        if (arguments.length != function.arity()) then
-          throw RuntimeError(paren, s"Expected ${function.arity()} arguments but got ${arguments.length}.")
-        else
-          function.call(this, argumentsV)
+      evaluate(callee) match
+        case lc: LoxCallable =>
+          if (arguments.length != lc.arity()) then
+            throw RuntimeError(paren, s"Expected ${lc.arity()} arguments but got ${arguments.length}.")
+          else
+            lc.call(this, argumentsV)
+        case _ =>
+          throw RuntimeError(paren, "Can only call functions and classes.")
+
+    case Expr.Get(instance, name) =>
+      evaluate(instance) match
+        case li: LoxInstance =>
+          li.get(name)
+        case _ => throw RuntimeError(name, "Only instances have properties.")
+
+    case Expr.Set(instance, name, value) =>
+      evaluate(instance) match
+        case li: LoxInstance =>
+          val valueV = evaluate(value)
+          li.set(name, valueV)
+          valueV
+        case _ => throw RuntimeError(name, "Only instances have fields.")
+
+    case Expr.This(keyword) => lookUpVariable(keyword, expr)
 
   end evaluate
 
@@ -157,10 +180,10 @@ class Interpreter:
       case None => globals.get(name)
 
 
-  private def isTruthy(value: Any): Boolean =
-    if (value == null) false
-    else if (value.isInstanceOf[Boolean]) value.asInstanceOf[Boolean]
-    else true
+  private def isTruthy(value: Any): Boolean = value match
+    case b: Boolean => b
+    case null => false
+    case _ => true
 
 
   private def isEqual(a: Any, b: Any): Boolean =
@@ -169,14 +192,12 @@ class Interpreter:
     else a.equals(b)
 
 
-  private def checkNumberOperand(operator: Token, operand: Any): Unit =
-    if !operand.isInstanceOf[Double] then
-      throw RuntimeError(operator, "Operand must be a number.")
+  private def numberOperandError(operator: Token): Nothing =
+    throw RuntimeError(operator, "Operand must be a number.")
 
 
-  private def checkNumberOperands(operator: Token, left: Any, right: Any): Unit =
-    if !left.isInstanceOf[Double] || !right.isInstanceOf[Double] then
-      throw RuntimeError(operator, "Operands must be numbers.")
+  private def numberOperandsError(operator: Token): Nothing =
+    throw RuntimeError(operator, "Operands must be numbers.")
 
 
   private def stringify(value: Any): String = value match

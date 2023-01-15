@@ -1,8 +1,15 @@
 import scala.collection.mutable
 
 class Resolver(interpreter: Interpreter):
+  private enum FunctionType:
+    case NONE, FUNCTION, METHOD, INITIALIZER
+
+  private enum ClassType:
+    case NONE, CLASS
+
   private val scopes = mutable.Stack.empty[Map[String, Boolean]]
   private var currentFunction = FunctionType.NONE
+  private var currentClass = ClassType.NONE
 
   def resolve(statements: List[Stmt]): Unit =
     for statement <- statements do resolve(statement)
@@ -22,7 +29,10 @@ class Resolver(interpreter: Interpreter):
       if currentFunction == FunctionType.NONE then
         Lox.error(keyword, "Can't return from top-level code.")
       value match
-        case Some(v) => resolve(v)
+        case Some(v) =>
+          if currentFunction == FunctionType.INITIALIZER then
+            Lox.error(keyword, "Can't return a value from an initializer.")
+          resolve(v)
         case None => ()
 
     case Stmt.While(condition, body) =>
@@ -41,6 +51,25 @@ class Resolver(interpreter: Interpreter):
         case None => ()
       define(name)
 
+    case Stmt.Class(name, methods) =>
+      val enclosingClass = currentClass
+      currentClass = ClassType.CLASS
+      declare(name)
+      define(name)
+
+      beginScope()
+      val scope = scopes.pop()
+      scopes.push(scope + ("this" -> true))
+
+      for method <- methods do
+        val declaration =
+          if method.name.lexeme == "init" then FunctionType.INITIALIZER
+          else FunctionType.METHOD
+        resolveFunction(method, declaration)
+
+      endScope()
+      currentClass = enclosingClass
+
     case function @ Stmt.Function(name, params, body) =>
       declare(name)
       define(name)
@@ -55,6 +84,7 @@ class Resolver(interpreter: Interpreter):
       resolve(left)
       resolve(right)
 
+    case Expr.Get(instance, _) => resolve(instance)
     case Expr.Call(callee, _, arguments) =>
       resolve(callee)
       for argument <- arguments do resolve(argument)
@@ -64,6 +94,10 @@ class Resolver(interpreter: Interpreter):
     case Expr.Logical(left, _, right) =>
       resolve(left)
       resolve(right)
+
+    case Expr.Set(instance, _, value) =>
+      resolve(value)
+      resolve(instance)
 
     case Expr.Variable(name) =>
       if !scopes.isEmpty then
@@ -77,10 +111,16 @@ class Resolver(interpreter: Interpreter):
       resolve(value)
       resolveLocal(expr, name)
 
+    case Expr.This(keyword) =>
+      if currentClass == ClassType.NONE then
+        Lox.error(keyword, "Can't use 'this' outside of a class.")
+      else
+        resolveLocal(expr, keyword)
+
   end resolve
 
 
-  def resolveFunction(function: Stmt.Function, functionType: FunctionType): Unit =
+  private def resolveFunction(function: Stmt.Function, functionType: FunctionType): Unit =
     val enclosingFunction = currentFunction
     currentFunction = functionType
 
@@ -94,7 +134,7 @@ class Resolver(interpreter: Interpreter):
     currentFunction = enclosingFunction
 
 
-  def resolveLocal(expr: Expr, name: Token): Unit =
+  private def resolveLocal(expr: Expr, name: Token): Unit =
     scopes.zipWithIndex.foldLeft(false)((resolved, scopei) =>
       if resolved then true
       else scopei match
@@ -104,12 +144,10 @@ class Resolver(interpreter: Interpreter):
         case _ => false)
 
 
-  def beginScope(): Unit = scopes.push(Map.empty)
+  private def beginScope(): Unit = scopes.push(Map.empty)
+  private def endScope(): Unit = scopes.pop()
 
-  def endScope(): Unit = scopes.pop()
-
-
-  def declare(name: Token): Unit =
+  private def declare(name: Token): Unit =
     if scopes.isEmpty then ()
     else
       val scope = scopes.pop()
@@ -118,7 +156,7 @@ class Resolver(interpreter: Interpreter):
       scopes.push(scope + (name.lexeme -> false))
 
 
-  def define(name: Token): Unit =
+  private def define(name: Token): Unit =
     if scopes.isEmpty then ()
     else
       val scope = scopes.pop()

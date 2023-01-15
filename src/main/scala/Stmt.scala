@@ -1,4 +1,5 @@
 enum Stmt:
+  case Class(name: Token, methods: List[Stmt.Function])
   case Expression(expr: Expr)
   case Print(expr: Expr)
   case Return(keyword: Token, value: Option[Expr])
