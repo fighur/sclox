@@ -10,3 +10,4 @@ enum Expr:
   case Logical(left: Expr, operator: Token, right: Expr)
   case Set(instance: Expr, name: Token, value: Expr)
   case This(keyword: Token)
+  case Super(keyword: Token, method: Token)

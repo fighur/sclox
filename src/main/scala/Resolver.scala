@@ -5,7 +5,7 @@ class Resolver(interpreter: Interpreter):
     case NONE, FUNCTION, METHOD, INITIALIZER
 
   private enum ClassType:
-    case NONE, CLASS
+    case NONE, CLASS, SUBCLASS
 
   private val scopes = mutable.Stack.empty[Map[String, Boolean]]
   private var currentFunction = FunctionType.NONE
@@ -51,15 +51,25 @@ class Resolver(interpreter: Interpreter):
         case None => ()
       define(name)
 
-    case Stmt.Class(name, methods) =>
+    case Stmt.Class(name, superclass, methods) =>
       val enclosingClass = currentClass
       currentClass = ClassType.CLASS
+
       declare(name)
       define(name)
 
+      superclass match
+        case Some(klass) =>
+          if name.lexeme == klass.name.lexeme then
+            Lox.error(klass.name, "A class can't inherit from itself.")
+          currentClass = ClassType.SUBCLASS
+          resolve(klass)
+          beginScope()
+          scopes.push(scopes.pop() + ("super" -> true))
+        case None => ()
+
       beginScope()
-      val scope = scopes.pop()
-      scopes.push(scope + ("this" -> true))
+      scopes.push(scopes.pop() + ("this" -> true))
 
       for method <- methods do
         val declaration =
@@ -68,6 +78,7 @@ class Resolver(interpreter: Interpreter):
         resolveFunction(method, declaration)
 
       endScope()
+      if superclass.isDefined then endScope()
       currentClass = enclosingClass
 
     case function @ Stmt.Function(name, params, body) =>
@@ -117,6 +128,13 @@ class Resolver(interpreter: Interpreter):
       else
         resolveLocal(expr, keyword)
 
+    case Expr.Super(keyword, _) =>
+      if currentClass == ClassType.NONE then
+        Lox.error(keyword, "Can't use 'super' outside of a class.")
+      else if currentClass != ClassType.SUBCLASS then
+        Lox.error(keyword, "Can't use 'super' in a class with no superclass.")
+      resolveLocal(expr, keyword)
+
   end resolve
 
 
@@ -159,5 +177,4 @@ class Resolver(interpreter: Interpreter):
   private def define(name: Token): Unit =
     if scopes.isEmpty then ()
     else
-      val scope = scopes.pop()
-      scopes.push(scope + (name.lexeme -> true))
+      scopes.push(scopes.pop() + (name.lexeme -> true))

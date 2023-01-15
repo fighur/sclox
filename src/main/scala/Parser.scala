@@ -30,7 +30,7 @@ class Parser(private var tokens: List[Token]):
       case Failure(pe: ParseError) =>
         synchronize()
         null
-      case _ => ???
+      case _ => ??? // Unreachable
 
 
   private def classDeclaration(): Stmt =
@@ -39,12 +39,17 @@ class Parser(private var tokens: List[Token]):
       else parseMethods(function("method") :: methods)
 
     val name = consume(IDENTIFIER, "Expect class name.")
-    consume(LEFT_BRACE, "Expect '{' before class body.")
+    val superclass: Option[Expr.Variable] =
+      if matchAny(LESS) then
+        consume(IDENTIFIER, "Expect superclass name.")
+        Some(Expr.Variable(previous()))
+      else None
 
+    consume(LEFT_BRACE, "Expect '{' before class body.")
     val methods = parseMethods(Nil)
     consume(RIGHT_BRACE, "Expect '}' after class body.")
 
-    Stmt.Class(name, methods)
+    Stmt.Class(name, superclass, methods)
 
 
   private def function(kind: String): Stmt.Function =
@@ -293,6 +298,11 @@ class Parser(private var tokens: List[Token]):
     else if matchAny(NIL) then Expr.Literal(null)
     else if matchAny(NUMBER, STRING) then Expr.Literal(previous().literal)
     else if matchAny(THIS) then Expr.This(previous())
+    else if matchAny(SUPER) then
+      val keyword = previous()
+      consume(DOT, "Expect '.' after 'super'.")
+      val method = consume(IDENTIFIER, "Expect superclass method name.")
+      Expr.Super(keyword, method)
     else if matchAny(IDENTIFIER) then Expr.Variable(previous())
     else if matchAny(LEFT_PAREN) then
       val expr = expression()

@@ -60,13 +60,26 @@ class Interpreter:
     case Stmt.Block(statements) =>
       executeBlock(statements, Environment(environment))
 
-    case Stmt.Class(name, methods) =>
+    case Stmt.Class(name, superclass, methods) =>
+      val superclassV = superclass match
+        case Some(klass) => evaluate(klass) match
+          case classV: LoxClass => Some(classV)
+          case _ =>
+            throw RuntimeError(klass.name, "Superclass must be a class.")
+        case None => None
+
       environment.define(name.lexeme, null)
+
+      if superclass.isDefined then
+        environment = Environment(environment)
+        environment.define("super", superclassV.get)
 
       val classMethods = methods.map(method =>
         val methodName = method.name.lexeme
         (methodName, LoxFunction(method, environment, methodName == "init"))).toMap
-      val klass = LoxClass(name.lexeme, classMethods)
+      val klass = LoxClass(name.lexeme, superclassV, classMethods)
+
+      if superclassV.isDefined then environment = environment.enclosing
 
       environment.assign(name, klass)
 
@@ -93,7 +106,7 @@ class Interpreter:
           case d: Double => -d
           case _ => numberOperandError(operator)
         case BANG => !isTruthy(rightV)
-        case _ => ???
+        case _ => ??? // Unreachable
 
     case Expr.Logical(left, operator, right) =>
       val leftV = evaluate(left)
@@ -141,7 +154,7 @@ class Interpreter:
         case STAR => (leftV, rightV) match
           case (ld: Double, rd: Double) => ld * rd
           case _ => numberOperandsError(operator)
-        case _ => ???
+        case _ => ??? // Unreachable
 
     case Expr.Call(callee, paren, arguments) =>
       val calleeV = evaluate(callee)
@@ -170,6 +183,15 @@ class Interpreter:
         case _ => throw RuntimeError(name, "Only instances have fields.")
 
     case Expr.This(keyword) => lookUpVariable(keyword, expr)
+    case Expr.Super(keyword, method) =>
+      val distance = locals(expr)
+      val superclass = environment.getAt(distance, "super").asInstanceOf[LoxClass]
+      val instance = environment.getAt(distance - 1, "this").asInstanceOf[LoxInstance]
+      val methodV = superclass.findMethod(method.lexeme)
+      methodV match
+        case Some(function) => function.bind(instance)
+        case None =>
+          throw RuntimeError(method, s"Undefined property '${method.lexeme}'.")
 
   end evaluate
 

@@ -1,6 +1,11 @@
-class LoxClass(val name: String, methods: Map[String, LoxFunction]) extends LoxCallable:
+class LoxClass(val name: String, superclass: Option[LoxClass], methods: Map[String, LoxFunction]) extends LoxCallable:
 
-  def findMethod(name: String): Option[LoxFunction] = methods.get(name)
+  def findMethod(name: String): Option[LoxFunction] =
+    methods.get(name) match
+      case Some(method) => Some(method)
+      case None => superclass match
+        case Some(klass) => klass.findMethod(name)
+        case None => None
 
   override def call(interpreter: Interpreter, arguments: List[Any]): Any =
     val instance = LoxInstance(this)

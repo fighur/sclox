@@ -1,6 +1,5 @@
 import scala.io.{Source, StdIn}
 import annotation.tailrec
-import scala.collection.immutable.Stream.Cons
 
 @main def sclox(args: String*): Unit =
     if args.length > 1 then

@@ -1,4 +1,4 @@
-class Environment(enclosing: Environment = null):
+class Environment(val enclosing: Environment = null):
   private var values = Map.empty[String, Any]
 
   def define(name: String, value: Any): Unit =
