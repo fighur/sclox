@@ -1,4 +1,3 @@
-
 import scala.util.{Try, Success, Failure}
 
 import TokenType.*
@@ -19,13 +18,9 @@ class Interpreter:
   def resolve(expr: Expr, depth: Int): Unit =
     locals += (expr -> depth)
 
-
   def interpret(statements: List[Stmt]): Unit =
-    try
-      for statement <- statements do execute(statement)
-    catch
-      case re: RuntimeError => Lox.runtimeError(re)
-
+    try for statement <- statements do execute(statement)
+    catch case re: RuntimeError => Lox.runtimeError(re)
 
   private def execute(stmt: Stmt): Unit = stmt match
     case Stmt.Expression(expr) => evaluate(expr)
@@ -35,26 +30,27 @@ class Interpreter:
 
     case Stmt.If(condition, thenBranch, elseBranch) =>
       if isTruthy(evaluate(condition)) then execute(thenBranch)
-      else elseBranch match
-        case Some(stmt) => execute(stmt)
-        case None => ()
+      else
+        elseBranch match
+          case Some(stmt) => execute(stmt)
+          case None       => ()
 
     case Stmt.Print(expr) =>
       val value = evaluate(expr)
       println(stringify(value))
 
-    case Stmt.Return(keyword, value) => value match
-      case Some(value) => throw Return(evaluate(value))
-      case None => throw Return(null)
+    case Stmt.Return(keyword, value) =>
+      value match
+        case Some(value) => throw Return(evaluate(value))
+        case None        => throw Return(null)
 
     case Stmt.While(condition, body) =>
-      while isTruthy(evaluate(condition)) do
-        execute(body)
+      while isTruthy(evaluate(condition)) do execute(body)
 
     case Stmt.Var(name, initializer) =>
       val value = initializer match
         case Some(expr) => evaluate(expr)
-        case None => null
+        case None       => null
       environment.define(name.lexeme, value)
 
     case Stmt.Block(statements) =>
@@ -62,10 +58,11 @@ class Interpreter:
 
     case Stmt.Class(name, superclass, methods) =>
       val superclassV = superclass match
-        case Some(klass) => evaluate(klass) match
-          case classV: LoxClass => Some(classV)
-          case _ =>
-            throw RuntimeError(klass.name, "Superclass must be a class.")
+        case Some(klass) =>
+          evaluate(klass) match
+            case classV: LoxClass => Some(classV)
+            case _ =>
+              throw RuntimeError(klass.name, "Superclass must be a class.")
         case None => None
 
       environment.define(name.lexeme, null)
@@ -74,9 +71,12 @@ class Interpreter:
         environment = Environment(environment)
         environment.define("super", superclassV.get)
 
-      val classMethods = methods.map(method =>
-        val methodName = method.name.lexeme
-        (methodName, LoxFunction(method, environment, methodName == "init"))).toMap
+      val classMethods = methods
+        .map(method =>
+          val methodName = method.name.lexeme
+          (methodName, LoxFunction(method, environment, methodName == "init"))
+        )
+        .toMap
       val klass = LoxClass(name.lexeme, superclassV, classMethods)
 
       if superclassV.isDefined then environment = environment.enclosing
@@ -85,16 +85,12 @@ class Interpreter:
 
   end execute
 
-
   def executeBlock(statements: List[Stmt], environment: Environment): Unit =
     val previous = this.environment
     try
       this.environment = environment
-      for stmt <- statements do
-        execute(stmt)
-    finally
-      this.environment = previous
-
+      for stmt <- statements do execute(stmt)
+    finally this.environment = previous
 
   private def evaluate(expr: Expr): Any = expr match
     case Expr.Literal(value) => value
@@ -102,24 +98,26 @@ class Interpreter:
     case Expr.Unary(operator, right) =>
       val rightV = evaluate(right)
       operator.tokenType match
-        case MINUS => rightV match
-          case d: Double => -d
-          case _ => numberOperandError(operator)
+        case MINUS =>
+          rightV match
+            case d: Double => -d
+            case _         => numberOperandError(operator)
         case BANG => !isTruthy(rightV)
-        case _ => ??? // Unreachable
+        case _    => ??? // Unreachable
 
     case Expr.Logical(left, operator, right) =>
       val leftV = evaluate(left)
       operator.tokenType match
-        case OR if isTruthy(leftV) => leftV
+        case OR if isTruthy(leftV)   => leftV
         case AND if !isTruthy(leftV) => leftV
-        case _ => evaluate(right)
+        case _                       => evaluate(right)
 
     case Expr.Variable(name) => lookUpVariable(name, expr)
     case Expr.Assign(name, value) =>
       val evaluatedValue = evaluate(value)
       locals.get(expr) match
-        case Some(distance) => environment.assignAt(distance, name, evaluatedValue)
+        case Some(distance) =>
+          environment.assignAt(distance, name, evaluatedValue)
         case None => globals.assign(name, evaluatedValue)
       evaluatedValue
 
@@ -127,33 +125,45 @@ class Interpreter:
       val leftV = evaluate(left)
       val rightV = evaluate(right)
       operator.tokenType match
-        case BANG_EQUAL => !isEqual(leftV, rightV)
+        case BANG_EQUAL  => !isEqual(leftV, rightV)
         case EQUAL_EQUAL => isEqual(leftV, rightV)
-        case GREATER => (leftV, rightV) match
-          case (ld: Double, rd: Double) => ld > rd
-          case _ => numberOperandsError(operator)
-        case GREATER_EQUAL => (leftV, rightV) match
-          case (ld: Double, rd: Double) => ld >= rd
-          case _ => numberOperandsError(operator)
-        case LESS => (leftV, rightV) match
-          case (ld: Double, rd: Double) => ld < rd
-          case _ => numberOperandsError(operator)
-        case LESS_EQUAL => (leftV, rightV) match
-          case (ld: Double, rd: Double) => ld <= rd
-          case _ => numberOperandsError(operator)
-        case MINUS => (leftV, rightV) match
-          case (ld: Double, rd: Double) => ld - rd
-          case _ => numberOperandsError(operator)
-        case PLUS => (leftV, rightV) match
-          case (ld: Double, rd: Double) => ld + rd
-          case (ls: String, rs: String) => ls + rs
-          case _ => throw RuntimeError(operator, "Operands must be two numbers or two strings.")
-        case SLASH => (leftV, rightV) match
-          case (ld: Double, rd: Double) => ld / rd
-          case _ => numberOperandsError(operator)
-        case STAR => (leftV, rightV) match
-          case (ld: Double, rd: Double) => ld * rd
-          case _ => numberOperandsError(operator)
+        case GREATER =>
+          (leftV, rightV) match
+            case (ld: Double, rd: Double) => ld > rd
+            case _                        => numberOperandsError(operator)
+        case GREATER_EQUAL =>
+          (leftV, rightV) match
+            case (ld: Double, rd: Double) => ld >= rd
+            case _                        => numberOperandsError(operator)
+        case LESS =>
+          (leftV, rightV) match
+            case (ld: Double, rd: Double) => ld < rd
+            case _                        => numberOperandsError(operator)
+        case LESS_EQUAL =>
+          (leftV, rightV) match
+            case (ld: Double, rd: Double) => ld <= rd
+            case _                        => numberOperandsError(operator)
+        case MINUS =>
+          (leftV, rightV) match
+            case (ld: Double, rd: Double) => ld - rd
+            case _                        => numberOperandsError(operator)
+        case PLUS =>
+          (leftV, rightV) match
+            case (ld: Double, rd: Double) => ld + rd
+            case (ls: String, rs: String) => ls + rs
+            case _ =>
+              throw RuntimeError(
+                operator,
+                "Operands must be two numbers or two strings."
+              )
+        case SLASH =>
+          (leftV, rightV) match
+            case (ld: Double, rd: Double) => ld / rd
+            case _                        => numberOperandsError(operator)
+        case STAR =>
+          (leftV, rightV) match
+            case (ld: Double, rd: Double) => ld * rd
+            case _                        => numberOperandsError(operator)
         case _ => ??? // Unreachable
 
     case Expr.Call(callee, paren, arguments) =>
@@ -162,9 +172,11 @@ class Interpreter:
       evaluate(callee) match
         case lc: LoxCallable =>
           if (arguments.length != lc.arity()) then
-            throw RuntimeError(paren, s"Expected ${lc.arity()} arguments but got ${arguments.length}.")
-          else
-            lc.call(this, argumentsV)
+            throw RuntimeError(
+              paren,
+              s"Expected ${lc.arity()} arguments but got ${arguments.length}."
+            )
+          else lc.call(this, argumentsV)
         case _ =>
           throw RuntimeError(paren, "Can only call functions and classes.")
 
@@ -185,8 +197,10 @@ class Interpreter:
     case Expr.This(keyword) => lookUpVariable(keyword, expr)
     case Expr.Super(keyword, method) =>
       val distance = locals(expr)
-      val superclass = environment.getAt(distance, "super").asInstanceOf[LoxClass]
-      val instance = environment.getAt(distance - 1, "this").asInstanceOf[LoxInstance]
+      val superclass =
+        environment.getAt(distance, "super").asInstanceOf[LoxClass]
+      val instance =
+        environment.getAt(distance - 1, "this").asInstanceOf[LoxInstance]
       val methodV = superclass.findMethod(method.lexeme)
       methodV match
         case Some(function) => function.bind(instance)
@@ -195,32 +209,26 @@ class Interpreter:
 
   end evaluate
 
-
   private def lookUpVariable(name: Token, expr: Expr): Any =
     locals.get(expr) match
       case Some(distance) => environment.getAt(distance, name.lexeme)
-      case None => globals.get(name)
-
+      case None           => globals.get(name)
 
   private def isTruthy(value: Any): Boolean = value match
     case b: Boolean => b
-    case null => false
-    case _ => true
-
+    case null       => false
+    case _          => true
 
   private def isEqual(a: Any, b: Any): Boolean =
     if (a == null && b == null) true
     else if (a == null) false
     else a.equals(b)
 
-
   private def numberOperandError(operator: Token): Nothing =
     throw RuntimeError(operator, "Operand must be a number.")
 
-
   private def numberOperandsError(operator: Token): Nothing =
     throw RuntimeError(operator, "Operands must be numbers.")
-
 
   private def stringify(value: Any): String = value match
     case null => "nil"

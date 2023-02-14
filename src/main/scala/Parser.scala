@@ -1,4 +1,3 @@
-
 import annotation.tailrec
 import scala.util.{Try, Success, Failure}
 
@@ -17,7 +16,6 @@ class Parser(private var tokens: List[Token]):
 
     parse(Nil).reverse
 
-
   private def declaration(): Stmt =
     lazy val matchedStmt =
       if matchAny(FUN) then function("function")
@@ -32,9 +30,10 @@ class Parser(private var tokens: List[Token]):
         null
       case _ => ??? // Unreachable
 
-
   private def classDeclaration(): Stmt =
-    @tailrec def parseMethods(methods: List[Stmt.Function]): List[Stmt.Function] =
+    @tailrec def parseMethods(
+        methods: List[Stmt.Function]
+    ): List[Stmt.Function] =
       if check(RIGHT_BRACE) || isAtEnd() then methods.reverse
       else parseMethods(function("method") :: methods)
 
@@ -51,12 +50,15 @@ class Parser(private var tokens: List[Token]):
 
     Stmt.Class(name, superclass, methods)
 
-
   private def function(kind: String): Stmt.Function =
     @tailrec def parseParams(params: List[Token], count: Int): List[Token] =
       if matchAny(COMMA) then
-        if (count >= 255) then error(peek(), "Can't have more than 255 parameters.")
-        parseParams(consume(IDENTIFIER, "Expect parameter name") :: params, count + 1)
+        if (count >= 255) then
+          error(peek(), "Can't have more than 255 parameters.")
+        parseParams(
+          consume(IDENTIFIER, "Expect parameter name") :: params,
+          count + 1
+        )
       else params.reverse
 
     val name = consume(IDENTIFIER, s"Expect $kind name.")
@@ -74,14 +76,12 @@ class Parser(private var tokens: List[Token]):
 
     Stmt.Function(name, parameters, body)
 
-
   private def varDeclaration(): Stmt =
     val name = consume(IDENTIFIER, "Expect variable name.")
-    val initializer =  if matchAny(EQUAL) then Some(expression()) else None
+    val initializer = if matchAny(EQUAL) then Some(expression()) else None
 
     consume(SEMICOLON, "Expect ';' after variable declaration.")
     Stmt.Var(name, initializer)
-
 
   private def statement(): Stmt =
     if matchAny(FOR) then forStatement()
@@ -92,7 +92,6 @@ class Parser(private var tokens: List[Token]):
     else if matchAny(LEFT_BRACE) then Stmt.Block(block())
     else expressionStatement()
 
-
   private def forStatement(): Stmt =
     consume(LEFT_PAREN, "Expect '(' after 'for'.")
     val initializer =
@@ -100,7 +99,8 @@ class Parser(private var tokens: List[Token]):
       else if matchAny(VAR) then varDeclaration()
       else expressionStatement()
 
-    var condition = if !check(SEMICOLON) then expression() else Expr.Literal(true)
+    var condition =
+      if !check(SEMICOLON) then expression() else Expr.Literal(true)
     consume(SEMICOLON, "Expect ';' after loop condition.")
 
     val increment = if !check(RIGHT_PAREN) then expression() else null
@@ -114,12 +114,10 @@ class Parser(private var tokens: List[Token]):
     val loop = Stmt.While(condition, body)
 
     val forLoop =
-      if initializer != null then
-        Stmt.Block(List(initializer, loop))
+      if initializer != null then Stmt.Block(List(initializer, loop))
       else loop
 
     forLoop
-
 
   private def ifStatement(): Stmt =
     consume(LEFT_PAREN, "Expect '(' after 'if'.")
@@ -130,12 +128,10 @@ class Parser(private var tokens: List[Token]):
 
     Stmt.If(condition, thenBranch, elseBranch)
 
-
   private def printStatement(): Stmt =
     val value = expression()
     consume(SEMICOLON, "Expect ';' after value.")
     Stmt.Print(value)
-
 
   private def returnStatement(): Stmt =
     val keyword = previous()
@@ -143,7 +139,6 @@ class Parser(private var tokens: List[Token]):
 
     consume(SEMICOLON, "Expect ';' after return value.")
     Stmt.Return(keyword, value)
-
 
   private def whileStatement(): Stmt =
     consume(LEFT_PAREN, "Expect '(' after 'while'.")
@@ -153,27 +148,22 @@ class Parser(private var tokens: List[Token]):
 
     Stmt.While(condition, body)
 
-
   private def block(): List[Stmt] =
     @tailrec def block(stmts: List[Stmt]): List[Stmt] =
       if check(RIGHT_BRACE) || isAtEnd() then
         consume(RIGHT_BRACE, "Expect '}' after block.")
         stmts.reverse
-      else
-        block(declaration() :: stmts)
+      else block(declaration() :: stmts)
 
     block(Nil)
-
 
   private def expressionStatement(): Stmt =
     val expr = expression()
     consume(SEMICOLON, "Expect ';' after expression.")
     Stmt.Expression(expr)
 
-
   private def expression(): Expr =
     assignment()
-
 
   private def assignment(): Expr =
     or() match
@@ -189,7 +179,6 @@ class Parser(private var tokens: List[Token]):
         error(equals, "Invalid assignment target.")
         expr
       case expr => expr
-
 
   private def or(): Expr =
     @tailrec def or(expr: Expr): Expr =
@@ -211,7 +200,6 @@ class Parser(private var tokens: List[Token]):
 
     and(equality())
 
-
   private def equality(): Expr =
     @tailrec def equality(expr: Expr): Expr =
       if matchAny(BANG_EQUAL, EQUAL_EQUAL) then
@@ -221,7 +209,6 @@ class Parser(private var tokens: List[Token]):
       else expr
 
     equality(comparison())
-
 
   private def comparison(): Expr =
     @tailrec def comparison(expr: Expr): Expr =
@@ -233,7 +220,6 @@ class Parser(private var tokens: List[Token]):
 
     comparison(term())
 
-
   private def term(): Expr =
     @tailrec def term(expr: Expr): Expr =
       if matchAny(MINUS, PLUS) then
@@ -243,7 +229,6 @@ class Parser(private var tokens: List[Token]):
       else expr
 
     term(factor())
-
 
   private def factor(): Expr =
     @tailrec def factor(expr: Expr): Expr =
@@ -255,20 +240,16 @@ class Parser(private var tokens: List[Token]):
 
     factor(unary())
 
-
-  private def unary():Expr =
+  private def unary(): Expr =
     if matchAny(BANG, MINUS) then
       val operator = previous()
       val right = unary()
       Expr.Unary(operator, right)
-    else
-      call()
-
+    else call()
 
   private def call(): Expr =
     @tailrec def call(expr: Expr): Expr =
-      if matchAny(LEFT_PAREN) then
-        call(finishCall(expr))
+      if matchAny(LEFT_PAREN) then call(finishCall(expr))
       else if matchAny(DOT) then
         val name = consume(IDENTIFIER, "Expect property name after '.'.")
         call(Expr.Get(expr, name))
@@ -276,21 +257,19 @@ class Parser(private var tokens: List[Token]):
 
     call(primary())
 
-
   private def finishCall(callee: Expr): Expr =
     @tailrec def parseArgs(args: List[Expr], count: Int): List[Expr] =
       if matchAny(COMMA) then
-        if (count >= 255) then error(peek(), "Can't have more than 255 arguments.")
+        if (count >= 255) then
+          error(peek(), "Can't have more than 255 arguments.")
         parseArgs(expression() :: args, count + 1)
       else args.reverse
 
     val arguments =
-      if !check(RIGHT_PAREN) then
-        parseArgs(expression() :: Nil, 1)
+      if !check(RIGHT_PAREN) then parseArgs(expression() :: Nil, 1)
       else Nil
     val paren = consume(RIGHT_PAREN, "Expect ')' after arguments.")
     Expr.Call(callee, paren, arguments)
-
 
   private def primary(): Expr =
     if matchAny(FALSE) then Expr.Literal(false)
@@ -310,7 +289,6 @@ class Parser(private var tokens: List[Token]):
       Expr.Grouping(expr)
     else throw error(peek(), "Expect expression.")
 
-
   @tailrec
   private def matchAny(tokenTypes: TokenType*): Boolean =
     if tokenTypes.isEmpty then false
@@ -319,33 +297,26 @@ class Parser(private var tokens: List[Token]):
       true
     else matchAny(tokenTypes.tail*)
 
-
   private def check(tokenType: TokenType): Boolean =
     if isAtEnd() then false
     else peek().tokenType == tokenType
 
-
   private def isAtEnd(): Boolean =
     peek().tokenType == EOF
-
 
   private def advance(): Token =
     if !isAtEnd() then tokens = tokens.tail
     previous()
 
-
   private def previous(): Token =
     tokens.head
-
 
   private def peek(): Token =
     tokens.tail.head
 
-
   private def consume(tokenType: TokenType, message: String): Token =
     if check(tokenType) then advance()
     else throw error(peek(), message)
-
 
   private def error(token: Token, message: String): ParseError =
     Lox.error(token, message)
@@ -357,11 +328,12 @@ class Parser(private var tokens: List[Token]):
     @tailrec def synch(): Unit =
       if !isAtEnd() then
         if previous().tokenType == SEMICOLON then ()
-        else peek().tokenType match
-          case CLASS | FUN | VAR | FOR | IF | WHILE | PRINT | RETURN => ()
-          case _ =>
-            advance()
-            synch()
+        else
+          peek().tokenType match
+            case CLASS | FUN | VAR | FOR | IF | WHILE | PRINT | RETURN => ()
+            case _ =>
+              advance()
+              synch()
 
     synch()
 

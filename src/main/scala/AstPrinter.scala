@@ -2,16 +2,15 @@ import Expr.*
 
 class AstPrinter:
   def print(expr: Expr): String = expr match
-    case Binary(left, operator, right) => parenthesize(operator.lexeme, left, right)
+    case Binary(left, operator, right) =>
+      parenthesize(operator.lexeme, left, right)
     case Grouping(expression) => parenthesize("group", expression)
-    case Literal(value) => if value == null then "nil" else value.toString
+    case Literal(value)       => if value == null then "nil" else value.toString
     case Unary(operator, right) => parenthesize(operator.lexeme, right)
-    case _ => ???
-
+    case _                      => ???
 
   private def parenthesize(name: String, exprs: Expr*): String =
     exprs.foldLeft(s"($name")((str, expr) => str + s" ${print(expr)}") + ")"
-
 
 @main def testPrinter: Unit =
   import TokenType.*

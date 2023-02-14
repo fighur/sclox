@@ -14,7 +14,6 @@ class Resolver(interpreter: Interpreter):
   def resolve(statements: List[Stmt]): Unit =
     for statement <- statements do resolve(statement)
 
-
   def resolve(stmt: Stmt): Unit = stmt match
     case Stmt.Expression(expr) => resolve(expr)
     case Stmt.If(condition, thenBranch, elseBranch) =>
@@ -22,7 +21,7 @@ class Resolver(interpreter: Interpreter):
       resolve(thenBranch)
       elseBranch match
         case Some(value) => resolve(value)
-        case None => ()
+        case None        => ()
 
     case Stmt.Print(expr) => resolve(expr)
     case Stmt.Return(keyword, value) =>
@@ -48,7 +47,7 @@ class Resolver(interpreter: Interpreter):
       declare(name)
       initializer match
         case Some(expr) => resolve(expr)
-        case None => ()
+        case None       => ()
       define(name)
 
     case Stmt.Class(name, superclass, methods) =>
@@ -88,7 +87,6 @@ class Resolver(interpreter: Interpreter):
 
   end resolve
 
-
   def resolve(expr: Expr): Unit = expr match
     case Expr.Unary(_, right) => resolve(right)
     case Expr.Binary(left, _, right) =>
@@ -101,7 +99,7 @@ class Resolver(interpreter: Interpreter):
       for argument <- arguments do resolve(argument)
 
     case Expr.Grouping(expr) => resolve(expr)
-    case Expr.Literal(expr) => ()
+    case Expr.Literal(expr)  => ()
     case Expr.Logical(left, _, right) =>
       resolve(left)
       resolve(right)
@@ -125,8 +123,7 @@ class Resolver(interpreter: Interpreter):
     case Expr.This(keyword) =>
       if currentClass == ClassType.NONE then
         Lox.error(keyword, "Can't use 'this' outside of a class.")
-      else
-        resolveLocal(expr, keyword)
+      else resolveLocal(expr, keyword)
 
     case Expr.Super(keyword, _) =>
       if currentClass == ClassType.NONE then
@@ -137,8 +134,10 @@ class Resolver(interpreter: Interpreter):
 
   end resolve
 
-
-  private def resolveFunction(function: Stmt.Function, functionType: FunctionType): Unit =
+  private def resolveFunction(
+      function: Stmt.Function,
+      functionType: FunctionType
+  ): Unit =
     val enclosingFunction = currentFunction
     currentFunction = functionType
 
@@ -151,16 +150,16 @@ class Resolver(interpreter: Interpreter):
 
     currentFunction = enclosingFunction
 
-
   private def resolveLocal(expr: Expr, name: Token): Unit =
     scopes.zipWithIndex.foldLeft(false)((resolved, scopei) =>
       if resolved then true
-      else scopei match
-        case (scope, i) if scope.contains(name.lexeme) =>
-          interpreter.resolve(expr, i)
-          true
-        case _ => false)
-
+      else
+        scopei match
+          case (scope, i) if scope.contains(name.lexeme) =>
+            interpreter.resolve(expr, i)
+            true
+          case _ => false
+    )
 
   private def beginScope(): Unit = scopes.push(Map.empty)
   private def endScope(): Unit = scopes.pop()
@@ -173,8 +172,6 @@ class Resolver(interpreter: Interpreter):
         Lox.error(name, "Already a variable with this name in this scope.")
       scopes.push(scope + (name.lexeme -> false))
 
-
   private def define(name: Token): Unit =
     if scopes.isEmpty then ()
-    else
-      scopes.push(scopes.pop() + (name.lexeme -> true))
+    else scopes.push(scopes.pop() + (name.lexeme -> true))

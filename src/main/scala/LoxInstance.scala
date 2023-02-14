@@ -10,7 +10,6 @@ class LoxInstance(klass: LoxClass):
           case None =>
             throw RuntimeError(name, s"Undefined property '${name.lexeme}'.")
 
-
   def set(name: Token, value: Any): Unit =
     fields += (name.lexeme -> value)
 
